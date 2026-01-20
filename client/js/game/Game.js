@@ -100,7 +100,7 @@ export class Game {
     this.graphicsManager = new GraphicsManager(
       this.renderer,
       this.scene,
-      this.camera
+      this.camera,
     );
     await this.graphicsManager.init();
 
@@ -115,11 +115,17 @@ export class Game {
 
     try {
       const username = this.getUsername();
-      await this.networkManager.connect(username);
+      const connectionData = await this.networkManager.connect(username);
+
+      if (connectionData.singlePlayer) {
+        console.log("[Game] Running in single-player mode");
+      }
     } catch (error) {
-      console.error("[Game] Failed to connect:", error);
-      this.showError("Failed to connect to server. Please refresh the page.");
-      return;
+      console.warn(
+        "[Game] Network connection failed, continuing in single-player mode:",
+        error,
+      );
+      // Continue anyway - single-player mode will be enabled
     }
 
     // Hide loading screen
@@ -176,7 +182,7 @@ export class Game {
     this.graphicsManager = new GraphicsManager(
       this.renderer,
       this.scene,
-      this.camera
+      this.camera,
     );
     await this.graphicsManager.init();
 
@@ -557,7 +563,7 @@ export class Game {
     this.networkManager.sendMovement(
       pos,
       this.localPlayer.getRotation(),
-      animation
+      animation,
     );
   }
 
@@ -577,7 +583,7 @@ export class Game {
             const wallBox = new THREE.Box3().setFromObject(mesh);
             const playerSphere = new THREE.Sphere(
               new THREE.Vector3(position.x, 1, position.z),
-              playerRadius
+              playerRadius,
             );
 
             if (wallBox.intersectsSphere(playerSphere)) {
@@ -608,7 +614,7 @@ export class Game {
           const wallBox = new THREE.Box3().setFromObject(child);
           const playerSphere = new THREE.Sphere(
             new THREE.Vector3(position.x, 1, position.z),
-            playerRadius
+            playerRadius,
           );
 
           if (wallBox.intersectsSphere(playerSphere)) {
@@ -875,7 +881,7 @@ export class Game {
     // First check for portal doors in the world
     const portalDoorData = this.world.getNearestPortalDoor(
       playerPosition,
-      interactionDistance
+      interactionDistance,
     );
     if (portalDoorData) {
       const door = portalDoorData.door;
@@ -1105,7 +1111,7 @@ export class Game {
       }
 
       console.log(
-        `[Game] Transition to ${this.transitionTargetState} complete`
+        `[Game] Transition to ${this.transitionTargetState} complete`,
       );
     }
   }

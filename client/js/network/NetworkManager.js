@@ -30,6 +30,7 @@ export class NetworkManager {
     this.firebaseUid = null; // Firebase UID for persistent identity
     this.connected = false;
     this.selectedCharacterId = null; // Currently selected character
+    this.singlePlayerMode = false; // Single-player fallback mode
 
     // Remote players data with interpolation buffers
     this.remotePlayers = new Map(); // playerId -> { data, mesh, interpolation }
@@ -64,39 +65,88 @@ export class NetworkManager {
    */
   connect(username = "Player", roomId = "hawkins-1") {
     return new Promise((resolve, reject) => {
-      // Connect to server (same origin in production)
-      this.socket = io();
-
-      this.socket.on("connect", () => {
-        console.log("[Network] Connected to server");
-        this.connected = true;
-
-        // Request to join game with Firebase UID for identity
-        this.socket.emit("player:join", {
-          username,
-          uid: this.firebaseUid, // Send Firebase UID for persistent identity
-          roomId: roomId,
+      // Try to connect to server with timeout
+      const connectionTimeout = setTimeout(() => {
+        console.warn(
+          "[Network] Server connection timeout - switching to single-player mode",
+        );
+        this.enableSinglePlayerMode(username);
+        resolve({
+          id: "single-player",
+          username: username,
+          availableCharacters: Object.keys(CHARACTERS),
+          singlePlayer: true,
         });
-      });
+      }, 3000); // 3 second timeout
 
-      // Handle character selection screen (new flow)
-      this.socket.on("player:selectCharacterScreen", (data) => {
-        console.log("[Network] Character selection screen:", data);
-        this.playerId = data.id;
-        if (this.onCharacterSelectScreen) {
-          this.onCharacterSelectScreen(data);
-        }
-        resolve(data);
-      });
+      try {
+        // Connect to server (same origin in production)
+        this.socket = io({
+          timeout: 2000,
+          reconnection: false,
+        });
 
-      // Handle successful character selection
-      this.socket.on("character:selected", (data) => {
-        console.log("[Network] Character selected:", data.characterId);
-        this.selectedCharacterId = data.characterId;
-        if (this.onCharacterSelected) {
-          this.onCharacterSelected(data);
-        }
-      });
+        this.socket.on("connect", () => {
+          clearTimeout(connectionTimeout);
+          console.log("[Network] Connected to server");
+          this.connected = true;
+
+          // Request to join game with Firebase UID for identity
+          this.socket.emit("player:join", {
+            username,
+            uid: this.firebaseUid, // Send Firebase UID for persistent identity
+            roomId: roomId,
+          });
+        });
+
+        this.socket.on("connect_error", (error) => {
+          clearTimeout(connectionTimeout);
+          console.warn(
+            "[Network] Connection error - switching to single-player mode:",
+            error.message,
+          );
+          this.enableSinglePlayerMode(username);
+          resolve({
+            id: "single-player",
+            username: username,
+            availableCharacters: Object.keys(CHARACTERS),
+            singlePlayer: true,
+          });
+        });
+
+        // Handle character selection screen (new flow)
+        this.socket.on("player:selectCharacterScreen", (data) => {
+          clearTimeout(connectionTimeout);
+          console.log("[Network] Character selection screen:", data);
+          this.playerId = data.id;
+          if (this.onCharacterSelectScreen) {
+            this.onCharacterSelectScreen(data);
+          }
+          resolve(data);
+        });
+
+        // Handle successful character selection
+        this.socket.on("character:selected", (data) => {
+          console.log("[Network] Character selected:", data.characterId);
+          this.selectedCharacterId = data.characterId;
+          if (this.onCharacterSelected) {
+            this.onCharacterSelected(data);
+          }
+        });
+      } catch (error) {
+        clearTimeout(connectionTimeout);
+        console.warn(
+          "[Network] Failed to initialize socket - switching to single-player mode:",
+          error,
+        );
+        this.enableSinglePlayerMode(username);
+        resolve({
+          id: "single-player",
+          username: username,
+          availableCharacters: Object.keys(CHARACTERS),
+          singlePlayer: true,
+        });
+      }
 
       // Handle failed character selection
       this.socket.on("character:selectFailed", (data) => {
@@ -179,9 +229,71 @@ export class NetworkManager {
   }
 
   /**
+   * Enables single-player mode when server is unavailable
+   */
+  enableSinglePlayerMode(username) {
+    console.log("[Network] Running in SINGLE-PLAYER mode");
+    this.singlePlayerMode = true;
+    this.connected = false;
+    this.playerId = "single-player";
+
+    // Show notification to user
+    this.showSinglePlayerNotification();
+  }
+
+  /**
+   * Shows notification that game is running in single-player mode
+   */
+  showSinglePlayerNotification() {
+    const notification = document.createElement("div");
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 193, 7, 0.95);
+      color: #000;
+      padding: 15px 30px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      font-weight: bold;
+      z-index: 10000;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      border: 2px solid #ff9800;
+    `;
+    notification.innerHTML = `
+      ⚠️ SINGLE-PLAYER MODE<br>
+      <small style="font-size: 11px; font-weight: normal;">Multiplayer unavailable on this platform</small>
+    `;
+    document.body.appendChild(notification);
+
+    // Fade out after 5 seconds
+    setTimeout(() => {
+      notification.style.transition = "opacity 1s";
+      notification.style.opacity = "0";
+      setTimeout(() => notification.remove(), 1000);
+    }, 5000);
+  }
+
+  /**
    * Sends character selection to server
    */
   selectCharacter(characterId) {
+    if (this.singlePlayerMode) {
+      // In single-player mode, directly confirm character selection
+      console.log("[Network] Single-player: Selecting character:", characterId);
+      this.selectedCharacterId = characterId;
+      if (this.onCharacterSelected) {
+        setTimeout(() => {
+          this.onCharacterSelected({
+            characterId: characterId,
+            success: true,
+          });
+        }, 100);
+      }
+      return;
+    }
     if (!this.connected) return;
     console.log("[Network] Selecting character:", characterId);
     this.socket.emit("player:selectCharacter", { characterId });
@@ -191,6 +303,11 @@ export class NetworkManager {
    * Sends ready signal to start the game
    */
   sendReady() {
+    if (this.singlePlayerMode) {
+      // In single-player mode, directly start the game
+      console.log("[Network] Single-player: Starting game");
+      return;
+    }
     if (!this.connected) return;
     console.log("[Network] Sending ready signal");
     this.socket.emit("player:ready", {});
@@ -261,6 +378,7 @@ export class NetworkManager {
    * Sends local player movement to server (throttled)
    */
   sendMovement(position, rotation, animation) {
+    if (this.singlePlayerMode) return; // Skip in single-player mode
     if (!this.connected) return;
 
     const now = Date.now();
@@ -290,6 +408,7 @@ export class NetworkManager {
    * Sends world state change to server
    */
   sendWorldChange(worldState) {
+    if (this.singlePlayerMode) return; // Skip in single-player mode
     if (!this.connected) return;
 
     this.socket.emit("player:worldChange", { worldState });
