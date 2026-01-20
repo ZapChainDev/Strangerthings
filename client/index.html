@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stranger Things - Multiplayer Exploration</title>
+    <link rel="stylesheet" href="css/style.css" />
+
+    <!-- Import Map for ES Modules -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <!-- Socket.io Client -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+    <!-- 
+      Firebase SDK loaded via ES Modules in FirebaseManager.js
+      Using the modular Firebase v10 SDK for tree-shaking and smaller bundle size
+      Only Authentication and Firestore modules are imported (not Realtime Database)
+    -->
+  </head>
+  <body>
+    <!-- Game Container -->
+    <div id="game-container"></div>
+
+    <!-- Login Screen (shows before game) -->
+    <div id="login-screen">
+      <div class="login-content">
+        <h1 class="title">STRANGER THINGS</h1>
+        <p class="subtitle">Multiplayer Exploration</p>
+        <button id="google-signin-btn" class="google-btn">
+          <svg class="google-icon" viewBox="0 0 24 24">
+            <path
+              fill="#4285F4"
+              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+            />
+            <path
+              fill="#EA4335"
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+            />
+          </svg>
+          Sign in with Google
+        </button>
+        <p class="login-note">
+          Sign in to save your progress and play with others
+        </p>
+      </div>
+    </div>
+
+    <!-- Lobby Screen -->
+    <div id="lobby-screen" style="display: none">
+      <div class="lobby-content">
+        <h1 class="title">LOBBY</h1>
+        <div class="lobby-user-info">
+          <img id="user-avatar" src="" alt="" class="user-avatar" />
+          <span id="user-name">Player</span>
+        </div>
+
+        <div class="lobby-tabs">
+          <button class="tab-btn active" data-tab="join">Join Lobby</button>
+          <button class="tab-btn" data-tab="create">Create Lobby</button>
+        </div>
+
+        <div class="lobby-panel" id="join-panel">
+          <h3>Available Lobbies</h3>
+          <div id="lobby-list" class="lobby-list">
+            <div class="loading-lobbies">Loading lobbies...</div>
+          </div>
+        </div>
+
+        <div class="lobby-panel" id="create-panel" style="display: none">
+          <h3>Create New Lobby</h3>
+          <div class="create-form">
+            <input
+              type="text"
+              id="lobby-name"
+              placeholder="Enter lobby name"
+              maxlength="30"
+            />
+            <input
+              type="number"
+              id="max-players"
+              placeholder="Max players (2-30)"
+              min="2"
+              max="30"
+              value="8"
+            />
+            <button id="create-lobby-btn" class="lobby-btn primary">
+              Create Lobby
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Character Selection Screen -->
+    <div id="character-screen" style="display: none">
+      <div class="character-content">
+        <h1 class="title">CHOOSE YOUR CHARACTER</h1>
+        <p class="character-subtitle">
+          Each character can only be played by one person per room
+        </p>
+
+        <div id="character-grid" class="character-grid">
+          <!-- Characters will be populated by JavaScript -->
+        </div>
+
+        <div
+          class="character-selected-info"
+          id="selected-character-info"
+          style="display: none"
+        >
+          <span>Selected: </span>
+          <span id="selected-character-name"></span>
+        </div>
+
+        <button id="start-game-btn" class="lobby-btn primary" disabled>
+          Start Game
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loading" style="display: none">
+      <div class="loading-content">
+        <h1 class="title">STRANGER THINGS</h1>
+        <p id="loading-text">Loading...</p>
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+
+    <!-- Instructions Overlay -->
+    <div id="instructions">
+      <div class="instructions-content">
+        <h2>CLICK TO PLAY</h2>
+        <p>WASD - Move</p>
+        <p>SHIFT - Run</p>
+        <p>SPACE - Jump</p>
+        <p>Mouse - Look Around</p>
+        <p>G - Open Doors</p>
+        <p>F - Ride Bicycle</p>
+        <p>E - Enter Portal</p>
+      </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud">
+      <!-- World State Indicator -->
+      <div id="world-indicator" class="normal">Normal World</div>
+
+      <!-- Portal Prompt -->
+      <div id="portal-prompt"><span class="key">E</span> Enter Portal</div>
+
+      <!-- Door Prompt -->
+      <div id="door-prompt"><span class="key">G</span> Open Door</div>
+
+      <!-- Bicycle Prompt -->
+      <div id="bicycle-prompt"><span class="key">F</span> Ride Bicycle</div>
+
+      <!-- Quality Settings -->
+      <div id="quality-settings">
+        <select id="quality-select">
+          <option value="high">High Quality</option>
+          <option value="medium" selected>Medium Quality</option>
+          <option value="low">Low Quality</option>
+        </select>
+      </div>
+
+      <!-- FPS Counter (Debug) -->
+      <div id="fps">FPS: 0</div>
+
+      <!-- Player Count -->
+      <div id="player-count">Players: 1</div>
+    </div>
+
+    <!-- Controls Help -->
+    <div id="controls-help">
+      <span>ESC - Release Mouse</span>
+    </div>
+
+    <!-- Main Game Script -->
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
