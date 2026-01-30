@@ -1,8 +1,19 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="screen-orientation" content="landscape" />
+    <meta name="orientation" content="landscape" />
     <title>Stranger Things - Multiplayer Exploration</title>
     <link rel="stylesheet" href="css/style.css" />
 
@@ -190,6 +201,60 @@
     <!-- Controls Help -->
     <div id="controls-help">
       <span>ESC - Release Mouse</span>
+      <button
+        id="force-mobile-btn"
+        style="
+          position: absolute;
+          top: 50px;
+          left: 10px;
+          padding: 10px;
+          background: #f00;
+          color: #fff;
+          border: none;
+          cursor: pointer;
+          z-index: 99999;
+        "
+      >
+        Force Mobile Controls
+      </button>
+    </div>
+
+    <!-- Mobile Touch Controls -->
+    <div id="mobile-controls" style="display: none">
+      <!-- Virtual Joystick Container -->
+      <div id="joystick-container">
+        <div id="joystick-base">
+          <div id="joystick-thumb"></div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div id="mobile-buttons">
+        <button id="mobile-jump-btn" class="mobile-btn">JUMP</button>
+        <button id="mobile-action-btn" class="mobile-btn action">ACTION</button>
+      </div>
+
+      <!-- Look Area (for camera control) -->
+      <div id="look-area"></div>
+    </div>
+
+    <!-- Mobile Instructions -->
+    <div id="mobile-instructions" style="display: none">
+      <div class="mobile-instructions-content">
+        <h2>TAP TO PLAY</h2>
+        <p>Left side - Move</p>
+        <p>Right side - Look around</p>
+        <p>Buttons - Jump, Run, Interact</p>
+      </div>
+    </div>
+
+    <!-- Orientation Warning -->
+    <div id="orientation-warning">
+      <div class="orientation-content">
+        <div class="rotate-icon">📱↻</div>
+        <h2>Please Rotate Your Device</h2>
+        <p>This game requires landscape orientation</p>
+      </div>
     </div>
 
     <!-- Main Game Script -->

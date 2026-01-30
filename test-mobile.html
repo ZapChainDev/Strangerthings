@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const mobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const hasCoarsePointer = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+  const hasFinePointer = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
+  const isMobile = mobileUA && !hasFinePointer;
+  
+  document.body.innerHTML = `
+    <h1>Mobile Detection Test</h1>
+    <p>User Agent: ${navigator.userAgent}</p>
+    <p>Mobile UA Match: ${mobileUA}</p>
+    <p>Coarse Pointer: ${hasCoarsePointer}</p>
+    <p>Fine Pointer: ${hasFinePointer}</p>
+    <p>Is Mobile: ${isMobile}</p>
+    <p>Touch Support: ${'ontouchstart' in window}</p>
+    <p>Max Touch Points: ${navigator.maxTouchPoints}</p>
+    <p>Window Size: ${window.innerWidth}x${window.innerHeight}</p>
+  `;
+});
+</script>
+</head>
+<body>Loading...</body>
+</html>

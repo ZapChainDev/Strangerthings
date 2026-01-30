@@ -218,19 +218,51 @@ export class Game {
    * Creates the WebGL renderer
    */
   createRenderer() {
+    // Detect mobile for optimization
+    const isMobile =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent,
+      ) ||
+      (window.innerWidth <= 1024 && "ontouchstart" in window);
+
     this.renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      powerPreference: "high-performance",
+      antialias: !isMobile, // Disable antialiasing on mobile for performance
+      powerPreference: isMobile ? "default" : "high-performance",
+      precision: isMobile ? "mediump" : "highp",
     });
 
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // Limit pixel ratio on mobile for better performance
+    const maxPixelRatio = isMobile ? 1.5 : 2;
+    this.renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio, maxPixelRatio),
+    );
     this.renderer.shadowMap.enabled = false; // Disabled for performance
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     document
       .getElementById("game-container")
       .appendChild(this.renderer.domElement);
+
+    // Prevent default touch behavior on canvas
+    this.renderer.domElement.addEventListener(
+      "touchstart",
+      (e) => {
+        // Allow touch events but prevent scroll/zoom
+        if (e.touches.length > 1) {
+          e.preventDefault();
+        }
+      },
+      { passive: false },
+    );
+
+    this.renderer.domElement.addEventListener(
+      "touchmove",
+      (e) => {
+        e.preventDefault();
+      },
+      { passive: false },
+    );
 
     // Handle window resize
     window.addEventListener("resize", () => this.handleResize());
@@ -1225,21 +1257,59 @@ export class Game {
   }
 
   /**
-   * Shows instructions overlay and waits for click to start
+   * Shows instructions overlay and waits for click/tap to start
    */
   showInstructions() {
-    const instructions = document.getElementById("instructions");
-    if (instructions) {
-      instructions.style.display = "flex";
+    // Check if we're on mobile
+    const isMobile = this.inputManager && this.inputManager.isMobileDevice();
 
-      // Add click handler to hide instructions and request pointer lock
-      const handleClick = () => {
-        instructions.style.display = "none";
-        this.renderer.domElement.click(); // Trigger pointer lock
-        instructions.removeEventListener("click", handleClick);
-      };
+    if (isMobile) {
+      // Mobile: Show mobile instructions, hide desktop instructions
+      const mobileInstructions = document.getElementById("mobile-instructions");
+      const desktopInstructions = document.getElementById("instructions");
 
-      instructions.addEventListener("click", handleClick);
+      if (desktopInstructions) {
+        desktopInstructions.style.display = "none";
+      }
+
+      if (mobileInstructions) {
+        mobileInstructions.style.display = "flex";
+
+        // Touch handler to hide instructions and start game
+        const handleTouch = (e) => {
+          e.preventDefault();
+          mobileInstructions.style.display = "none";
+          // Simulate pointer lock for mobile
+          this.inputManager.isPointerLocked = true;
+          this.camera.setMouseLocked(true);
+          // Initialize audio
+          if (this.graphicsManager) {
+            this.graphicsManager.initAudio();
+          }
+          mobileInstructions.removeEventListener("touchstart", handleTouch);
+          mobileInstructions.removeEventListener("click", handleTouch);
+        };
+
+        mobileInstructions.addEventListener("touchstart", handleTouch, {
+          passive: false,
+        });
+        mobileInstructions.addEventListener("click", handleTouch);
+      }
+    } else {
+      // Desktop: Show regular instructions
+      const instructions = document.getElementById("instructions");
+      if (instructions) {
+        instructions.style.display = "flex";
+
+        // Add click handler to hide instructions and request pointer lock
+        const handleClick = () => {
+          instructions.style.display = "none";
+          this.renderer.domElement.click(); // Trigger pointer lock
+          instructions.removeEventListener("click", handleClick);
+        };
+
+        instructions.addEventListener("click", handleClick);
+      }
     }
   }
 

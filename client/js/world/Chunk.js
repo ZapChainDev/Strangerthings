@@ -85,7 +85,7 @@ export class Chunk {
     this.groundMesh.position.set(
       this.worldX + size / 2,
       0,
-      this.worldZ + size / 2
+      this.worldZ + size / 2,
     );
     this.groundMesh.receiveShadow = true;
 
@@ -157,14 +157,13 @@ export class Chunk {
       this.createStreetFurniture();
     }
 
-    // Generate street lamps along edges - more lamps for better lighting
-    const lampSpacing = 12;
+    // Generate street lamps along edges - REDUCED for performance
+    // Only add lamps on two edges to avoid uniform limit
+    const lampSpacing = 32; // Increased spacing to reduce lamp count
     for (let offset = lampSpacing / 2; offset < size; offset += lampSpacing) {
-      // Lamps on all four edges
+      // Only lamps on top and left edges (reduce by 50%)
       this.createStreetLamp(this.worldX + offset, this.worldZ + 3);
       this.createStreetLamp(this.worldX + 3, this.worldZ + offset);
-      this.createStreetLamp(this.worldX + offset, this.worldZ + size - 3);
-      this.createStreetLamp(this.worldX + size - 3, this.worldZ + offset);
     }
 
     // Add fire hydrants along streets
@@ -190,7 +189,7 @@ export class Chunk {
     topSidewalk.position.set(
       this.worldX + size / 2,
       0.01,
-      this.worldZ + sidewalkWidth / 2
+      this.worldZ + sidewalkWidth / 2,
     );
     this.scene.add(topSidewalk);
     this.buildings.push(topSidewalk);
@@ -200,7 +199,7 @@ export class Chunk {
     bottomSidewalk.position.set(
       this.worldX + size / 2,
       0.01,
-      this.worldZ + size - sidewalkWidth / 2
+      this.worldZ + size - sidewalkWidth / 2,
     );
     this.scene.add(bottomSidewalk);
     this.buildings.push(bottomSidewalk);
@@ -212,7 +211,7 @@ export class Chunk {
     leftSidewalk.position.set(
       this.worldX + sidewalkWidth / 2,
       0.01,
-      this.worldZ + size / 2
+      this.worldZ + size / 2,
     );
     this.scene.add(leftSidewalk);
     this.buildings.push(leftSidewalk);
@@ -222,7 +221,7 @@ export class Chunk {
     rightSidewalk.position.set(
       this.worldX + size - sidewalkWidth / 2,
       0.01,
-      this.worldZ + size / 2
+      this.worldZ + size / 2,
     );
     this.scene.add(rightSidewalk);
     this.buildings.push(rightSidewalk);
@@ -490,7 +489,7 @@ export class Chunk {
       const bushGeo = new THREE.SphereGeometry(
         0.4 + this.seededRandom() * 0.2,
         8,
-        6
+        6,
       );
       const bush = new THREE.Mesh(bushGeo, bushMat);
       bush.position.set(x + i * 0.6, 0.3, z);
@@ -633,7 +632,7 @@ export class Chunk {
       height,
       wallThickness,
       doorWidth,
-      doorHeight
+      doorHeight,
     );
 
     // Add roof
@@ -660,7 +659,7 @@ export class Chunk {
     height,
     wallThickness,
     doorWidth,
-    doorHeight
+    doorHeight,
   ) {
     // Varied wall colors for realism (brick red, tan, gray, white)
     const wallColors = [0x8b4513, 0xd2b48c, 0x808080, 0xe8e8e8, 0xa0522d];
@@ -676,13 +675,13 @@ export class Chunk {
     const frontLeftGeo = new THREE.BoxGeometry(
       frontLeftWidth,
       height,
-      wallThickness
+      wallThickness,
     );
     const frontLeft = new THREE.Mesh(frontLeftGeo, wallMaterial);
     frontLeft.position.set(
       x - width / 2 + frontLeftWidth / 2,
       height / 2,
-      z + depth / 2
+      z + depth / 2,
     );
     frontLeft.userData.isBuilding = true;
     frontLeft.userData.isWall = true;
@@ -694,7 +693,7 @@ export class Chunk {
     frontRight.position.set(
       x + width / 2 - frontLeftWidth / 2,
       height / 2,
-      z + depth / 2
+      z + depth / 2,
     );
     frontRight.userData.isBuilding = true;
     frontRight.userData.isWall = true;
@@ -705,7 +704,7 @@ export class Chunk {
     const doorTopGeo = new THREE.BoxGeometry(
       doorWidth,
       height - doorHeight,
-      wallThickness
+      wallThickness,
     );
     const doorTop = new THREE.Mesh(doorTopGeo, wallMaterial);
     doorTop.position.set(x, height - (height - doorHeight) / 2, z + depth / 2);
@@ -781,7 +780,7 @@ export class Chunk {
     const roofGeometry = new THREE.ConeGeometry(
       Math.max(width, depth) * 0.72,
       roofHeight,
-      4
+      4,
     );
     roofGeometry.rotateY(Math.PI / 4);
 
@@ -816,13 +815,13 @@ export class Chunk {
     const leftFrameGeo = new THREE.BoxGeometry(
       frameThick,
       doorHeight + frameThick,
-      frameThick
+      frameThick,
     );
     const leftFrame = new THREE.Mesh(leftFrameGeo, frameMat);
     leftFrame.position.set(
       x - doorWidth / 2 - frameThick / 2,
       doorHeight / 2,
-      z + depth / 2 + 0.15
+      z + depth / 2 + 0.15,
     );
     this.scene.add(leftFrame);
     this.buildings.push(leftFrame);
@@ -832,7 +831,7 @@ export class Chunk {
     rightFrame.position.set(
       x + doorWidth / 2 + frameThick / 2,
       doorHeight / 2,
-      z + depth / 2 + 0.15
+      z + depth / 2 + 0.15,
     );
     this.scene.add(rightFrame);
     this.buildings.push(rightFrame);
@@ -841,7 +840,7 @@ export class Chunk {
     const topFrameGeo = new THREE.BoxGeometry(
       doorWidth + frameThick * 2,
       frameThick,
-      frameThick
+      frameThick,
     );
     const topFrame = new THREE.Mesh(topFrameGeo, frameMat);
     topFrame.position.set(x, doorHeight + frameThick / 2, z + depth / 2 + 0.15);
@@ -852,7 +851,7 @@ export class Chunk {
     const doorGeo = new THREE.BoxGeometry(
       doorWidth - 0.2,
       doorHeight - 0.2,
-      0.15
+      0.15,
     );
     const doorColors = [0x4a2a1a, 0x8b4513, 0x654321, 0x3a3a3a];
     const doorColor =
@@ -876,7 +875,7 @@ export class Chunk {
     const panelGeo = new THREE.BoxGeometry(
       doorWidth * 0.4,
       doorHeight * 0.35,
-      0.05
+      0.05,
     );
     const panelMat = new THREE.MeshBasicMaterial({ color: doorColor * 0.8 });
 
@@ -885,7 +884,7 @@ export class Chunk {
     topLeftPanel.position.set(
       x - doorWidth * 0.22,
       doorHeight * 0.65,
-      z + depth / 2 + 0.18
+      z + depth / 2 + 0.18,
     );
     this.scene.add(topLeftPanel);
     this.buildings.push(topLeftPanel);
@@ -894,7 +893,7 @@ export class Chunk {
     topRightPanel.position.set(
       x + doorWidth * 0.22,
       doorHeight * 0.65,
-      z + depth / 2 + 0.18
+      z + depth / 2 + 0.18,
     );
     this.scene.add(topRightPanel);
     this.buildings.push(topRightPanel);
@@ -904,7 +903,7 @@ export class Chunk {
     botLeftPanel.position.set(
       x - doorWidth * 0.22,
       doorHeight * 0.25,
-      z + depth / 2 + 0.18
+      z + depth / 2 + 0.18,
     );
     this.scene.add(botLeftPanel);
     this.buildings.push(botLeftPanel);
@@ -913,7 +912,7 @@ export class Chunk {
     botRightPanel.position.set(
       x + doorWidth * 0.22,
       doorHeight * 0.25,
-      z + depth / 2 + 0.18
+      z + depth / 2 + 0.18,
     );
     this.scene.add(botRightPanel);
     this.buildings.push(botRightPanel);
@@ -926,7 +925,7 @@ export class Chunk {
     handle.position.set(
       x + doorWidth / 2 - 0.35,
       doorHeight * 0.45,
-      z + depth / 2 + 0.25
+      z + depth / 2 + 0.25,
     );
     handle.userData.isDoorHandle = true;
     handle.userData.parentDoor = door;
@@ -939,7 +938,7 @@ export class Chunk {
     knob.position.set(
       x + doorWidth / 2 - 0.35,
       doorHeight * 0.45,
-      z + depth / 2 + 0.35
+      z + depth / 2 + 0.35,
     );
     this.scene.add(knob);
     this.buildings.push(knob);
@@ -1418,7 +1417,7 @@ export class Chunk {
         // Window frame - front
         const frameGeo = new THREE.PlaneGeometry(
           windowWidth + 0.3,
-          windowHeight + 0.3
+          windowHeight + 0.3,
         );
         const frontFrame = new THREE.Mesh(frameGeo, frameMat);
         frontFrame.position.set(wx, wy, buildingZ + depth / 2 + 0.02);
@@ -1452,7 +1451,7 @@ export class Chunk {
         sill.position.set(
           wx,
           wy - windowHeight / 2 - 0.05,
-          buildingZ + depth / 2 + 0.15
+          buildingZ + depth / 2 + 0.15,
         );
         this.scene.add(sill);
         this.buildings.push(sill);
@@ -1571,11 +1570,11 @@ export class Chunk {
     this.scene.add(road);
     this.buildings.push(road);
 
-    // Street lamps along road
-    const lampSpacing = 20;
+    // Street lamps along road - REDUCED for performance
+    const lampSpacing = 40; // Increased spacing
     for (let offset = 0; offset < size; offset += lampSpacing) {
       this.createStreetLamp(this.worldX + size / 2 + 5, this.worldZ + offset);
-      this.createStreetLamp(this.worldX + size / 2 - 5, this.worldZ + offset);
+      // Only one side to reduce lamp count further
     }
 
     // Sparse trees on sides
@@ -1696,7 +1695,7 @@ export class Chunk {
 
         const frame = new THREE.Mesh(
           new THREE.PlaneGeometry(2.8, 2.3),
-          frameMat
+          frameMat,
         );
         frame.position.set(wx, wy, z + depth / 2 + 0.02);
         this.scene.add(frame);
@@ -2068,7 +2067,7 @@ export class Chunk {
       1,
       false,
       0,
-      Math.PI
+      Math.PI,
     );
     archGeo.rotateZ(Math.PI / 2);
     const archMat = new THREE.MeshBasicMaterial({ color: 0x2a2a2a });
@@ -2152,7 +2151,7 @@ export class Chunk {
     const roofGeo = new THREE.ConeGeometry(
       Math.max(width, depth) * 0.7,
       roofHeight,
-      4
+      4,
     );
     roofGeo.rotateY(Math.PI / 4);
     const roofMat = new THREE.MeshBasicMaterial({ color: 0x4a3a3a });
@@ -2197,7 +2196,7 @@ export class Chunk {
       0,
       Math.PI * 2,
       0,
-      Math.PI / 2
+      Math.PI / 2,
     );
     const bellMat = new THREE.MeshBasicMaterial({ color: 0xccaa66 });
     const bell = new THREE.Mesh(bellGeo, bellMat);
